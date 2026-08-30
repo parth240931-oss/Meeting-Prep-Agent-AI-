@@ -1,0 +1,6 @@
+{
+  "name": "Meeting Prep Agent",
+  "description": "Autonomous sales-native research agent that investigates companies, chains tool calls, and crafts bespoke one-page meeting prep briefs with inferred talking points and objection handling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
