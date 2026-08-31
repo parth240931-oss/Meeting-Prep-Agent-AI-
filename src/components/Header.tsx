@@ -1,11 +1,13 @@
 import React from 'react';
-import { Sparkles, Briefcase, Zap, Volume2, ShieldCheck, History } from 'lucide-react';
+import { Sparkles, Briefcase, Zap, Volume2, ShieldCheck, History, Search, Globe, Users } from 'lucide-react';
 
 interface HeaderProps {
   onOpenHistory: () => void;
   savedCount: number;
   onSelectSample: (companyName: string) => void;
   selectedCompany?: string;
+  onOpenDiscovery?: () => void;
+  onOpenConnectors?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -13,6 +15,8 @@ export const Header: React.FC<HeaderProps> = ({
   savedCount,
   onSelectSample,
   selectedCompany,
+  onOpenDiscovery,
+  onOpenConnectors,
 }) => {
   return (
     <header className="sticky top-0 z-30 border-b border-[#E5E2D9] bg-[#F8F6F1]/95 backdrop-blur-md font-sans">
@@ -30,35 +34,39 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="hidden lg:block">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-600">
-              Executive Briefing Engine
+              Live Web & B2B Intelligence Engine
             </div>
             <p className="text-xs text-[#4A4842] font-serif italic">
-              Autonomous tool chaining & intelligence synthesis
+              Autonomous scraping, Apollo enrichment & LinkedIn verification
             </p>
           </div>
         </div>
 
-        {/* Right: Actions & History */}
+        {/* Right: Actions, Discovery, Connectors & History */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Preset Company Switcher */}
-          <div className="hidden md:flex items-center gap-1 bg-[#EFEDE7] p-1 border border-[#E5E2D9] text-xs">
-            <span className="px-2 text-[10px] uppercase font-bold tracking-wider text-[#8C8980]">
-              Sample:
-            </span>
-            {['Linear', 'Ramp', 'Supabase', 'Datadog'].map((company) => (
-              <button
-                key={company}
-                onClick={() => onSelectSample(company)}
-                className={`px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-all ${
-                  selectedCompany === company
-                    ? 'bg-[#1A1A1A] text-white shadow-xs'
-                    : 'text-[#4A4842] hover:text-[#1A1A1A] hover:bg-[#E5E2D9]/60'
-                }`}
-              >
-                {company}
-              </button>
-            ))}
-          </div>
+          {/* Company Discovery Trigger */}
+          {onOpenDiscovery && (
+            <button
+              onClick={onOpenDiscovery}
+              className="flex items-center gap-1.5 px-3 py-2 border border-[#E5E2D9] bg-[#FDFCF9] hover:bg-[#EFEDE7] text-[#1A1A1A] text-xs font-bold uppercase tracking-wider transition-all"
+              title="Find and discover companies across the internet"
+            >
+              <Search className="w-3.5 h-3.5 text-orange-600" />
+              <span className="hidden sm:inline">Find Companies</span>
+            </button>
+          )}
+
+          {/* Connectors Hub Trigger */}
+          {onOpenConnectors && (
+            <button
+              onClick={onOpenConnectors}
+              className="flex items-center gap-1.5 px-3 py-2 border border-[#1A1A1A] bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all shadow-2xs"
+              title="Connect Apollo.io, LinkedIn, and Live Web Scraper"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">Connectors</span>
+            </button>
+          )}
 
           {/* History Button */}
           <button

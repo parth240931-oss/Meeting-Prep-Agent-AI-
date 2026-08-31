@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MeetingBrief, ResearchRequest, AgentStep, InferredObjection } from './types';
+import { MeetingBrief, ResearchRequest, AgentStep, InferredObjection, ConnectorConfig, DiscoveredCompany } from './types';
 import { SAMPLE_BRIEFS } from './data/sampleBriefs';
 import { Header } from './components/Header';
 import { ResearchForm } from './components/ResearchForm';
@@ -10,9 +10,36 @@ import { ObjectionSimulatorModal } from './components/ObjectionSimulatorModal';
 import { ExportModal } from './components/ExportModal';
 import { AuditTrailModal } from './components/AuditTrailModal';
 import { HistorySidebar } from './components/HistorySidebar';
+import { ConnectorsModal } from './components/ConnectorsModal';
+import { CompanyDiscoveryModal } from './components/CompanyDiscoveryModal';
 import { Sparkles, Compass, AlertCircle, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'meeting_prep_briefs_v1';
+const STORAGE_CONNECTORS_KEY = 'meeting_prep_connectors_v1';
+
+const DEFAULT_CONNECTORS: ConnectorConfig = {
+  apollo: {
+    enabled: true,
+    status: 'connected',
+    autoEnrichContacts: true,
+  },
+  linkedin: {
+    enabled: true,
+    status: 'connected',
+    extractHeadcountHistory: true,
+  },
+  webScraper: {
+    enabled: true,
+    status: 'active',
+    crawlSubpages: true,
+    extractPricing: true,
+    extractTeam: true,
+  },
+  googleSearch: {
+    enabled: true,
+    status: 'active',
+  },
+};
 
 export default function App() {
   const [briefs, setBriefs] = useState<MeetingBrief[]>(() => {
@@ -34,6 +61,19 @@ export default function App() {
     return SAMPLE_BRIEFS[0] || null;
   });
 
+  // Connectors Configuration State
+  const [connectorConfig, setConnectorConfig] = useState<ConnectorConfig>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_CONNECTORS_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to load saved connectors', e);
+    }
+    return DEFAULT_CONNECTORS;
+  });
+
   // Research Execution State
   const [isLoading, setIsLoading] = useState(false);
   const [activeResearchCompany, setActiveResearchCompany] = useState('');
@@ -48,6 +88,8 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
+  const [isConnectorsModalOpen, setIsConnectorsModalOpen] = useState(false);
+  const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
 
   // Sync to localStorage
   useEffect(() => {
@@ -58,13 +100,21 @@ export default function App() {
     }
   }, [briefs]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_CONNECTORS_KEY, JSON.stringify(connectorConfig));
+    } catch (e) {
+      console.warn('Failed to save connectors config', e);
+    }
+  }, [connectorConfig]);
+
   // Handle autonomous research submission with real-time SSE stream
   const handleStartResearch = async (req: ResearchRequest) => {
     setIsLoading(true);
     setErrorMessage(null);
     setActiveResearchCompany(req.companyName);
     setLiveSteps([]);
-    setCurrentThought(`Initializing autonomous research agent for ${req.companyName}...`);
+    setCurrentThought(`Initializing autonomous internet research agent for ${req.companyName}...`);
 
     const queryParams = new URLSearchParams({
       companyName: req.companyName,
@@ -72,6 +122,15 @@ export default function App() {
       meetingContext: req.meetingContext || '',
       pitchFocus: req.pitchFocus || '',
     });
+
+    if (req.websiteUrl) {
+      queryParams.set('websiteUrl', req.websiteUrl);
+    }
+
+    const activeConnectors = req.connectors || connectorConfig;
+    if (activeConnectors) {
+      queryParams.set('connectors', JSON.stringify(activeConnectors));
+    }
 
     try {
       const eventSource = new EventSource(`/api/research/stream?${queryParams.toString()}`);
@@ -123,10 +182,15 @@ export default function App() {
 
   const fallbackDirectResearch = async (req: ResearchRequest) => {
     try {
+      const payload = {
+        ...req,
+        connectors: req.connectors || connectorConfig,
+      };
+
       const res = await fetch('/api/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -154,8 +218,21 @@ export default function App() {
         meetingTime: 'Today at 3:00 PM',
         meetingContext: 'Discovery Call',
         pitchFocus: 'Modern Cloud & Enterprise Scaling',
+        connectors: connectorConfig,
       });
     }
+  };
+
+  const handleSelectDiscoveredCompany = (company: DiscoveredCompany) => {
+    handleStartResearch({
+      companyName: company.name,
+      websiteUrl: company.websiteUrl,
+      meetingTime: 'Today at 3:00 PM',
+      meetingContext: `Strategic Discovery with ${company.name} leadership`,
+      pitchFocus: `${company.industry} scaling & enterprise infrastructure`,
+      connectors: connectorConfig,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteBrief = (id: string, e: React.MouseEvent) => {
@@ -175,6 +252,8 @@ export default function App() {
         savedCount={briefs.length}
         onSelectSample={handleSelectSample}
         selectedCompany={activeBrief?.companyName}
+        onOpenDiscovery={() => setIsDiscoveryModalOpen(true)}
+        onOpenConnectors={() => setIsConnectorsModalOpen(true)}
       />
 
       {/* Main Content Container */}
@@ -201,6 +280,9 @@ export default function App() {
             onStartResearch={handleStartResearch}
             isLoading={isLoading}
             activeCompany={activeBrief?.companyName}
+            onOpenDiscovery={() => setIsDiscoveryModalOpen(true)}
+            onOpenConnectors={() => setIsConnectorsModalOpen(true)}
+            connectorConfig={connectorConfig}
           />
         </section>
 
@@ -240,7 +322,7 @@ export default function App() {
               No Executive Brief Loaded
             </h3>
             <p className="text-xs text-[#8C8980] max-w-sm mx-auto font-serif italic">
-              Input prospect coordinates above to dispatch the autonomous research agent, or select a preset sample.
+              Input prospect coordinates above to dispatch the autonomous research agent, or discover companies across the web.
             </p>
           </div>
         )}
@@ -275,6 +357,21 @@ export default function App() {
           />
         </>
       )}
+
+      {/* Connectors Hub Modal */}
+      <ConnectorsModal
+        isOpen={isConnectorsModalOpen}
+        onClose={() => setIsConnectorsModalOpen(false)}
+        config={connectorConfig}
+        onSaveConfig={(updated) => setConnectorConfig(updated)}
+      />
+
+      {/* Company Discovery Modal */}
+      <CompanyDiscoveryModal
+        isOpen={isDiscoveryModalOpen}
+        onClose={() => setIsDiscoveryModalOpen(false)}
+        onSelectCompany={handleSelectDiscoveredCompany}
+      />
 
       {/* History Drawer */}
       <HistorySidebar

@@ -142,10 +142,56 @@ export interface MeetingBrief {
   };
 }
 
+export interface ConnectorConfig {
+  apollo: {
+    enabled: boolean;
+    apiKey?: string;
+    status: 'connected' | 'demo' | 'disconnected';
+    autoEnrichContacts: boolean;
+  };
+  linkedin: {
+    enabled: boolean;
+    apiKeyOrCookie?: string;
+    status: 'connected' | 'demo' | 'disconnected';
+    extractHeadcountHistory: boolean;
+  };
+  webScraper: {
+    enabled: boolean;
+    crawlSubpages: boolean;
+    extractPricing: boolean;
+    extractTeam: boolean;
+    status: 'active' | 'ready';
+  };
+  googleSearch: {
+    enabled: boolean;
+    status: 'active' | 'ready';
+  };
+}
+
+export interface DiscoveredCompany {
+  name: string;
+  domain: string;
+  websiteUrl: string;
+  logoUrl?: string;
+  description: string;
+  industry: string;
+  estimatedHeadcount?: string;
+  location?: string;
+  fundingStage?: string;
+  tags?: string[];
+  source?: string;
+  isUnicorn?: boolean;
+  region?: string;
+  city?: string;
+  state?: string;
+}
+
 export interface ResearchRequest {
   companyName: string;
+  websiteUrl?: string;
   meetingTime: string;
   meetingContext?: string;
   pitchFocus?: string;
+  connectors?: Partial<ConnectorConfig>;
 }
 
