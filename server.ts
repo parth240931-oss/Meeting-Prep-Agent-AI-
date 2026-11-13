@@ -5,12 +5,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { scrapeCompanyWebsite, normalizeUrl, extractDomain } from "./server/liveScraper";
 import { searchAndDiscoverCompanies } from "./server/companyDiscovery";
-import { enrichWithApollo, enrichWithLinkedIn, testConnector } from "./server/connectors";
+import { enrichWithApollo, testConnector } from "./server/connectors";
+import { TOP_INDIAN_COMPANIES } from "./server/indianCompaniesData";
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
+
+// Gemini models, tried in order. Override with GEMINI_MODEL in .env.
+export const GEMINI_MODELS = [process.env.GEMINI_MODEL || 'gemini-3.7-flash', 'gemini-flash-latest'];
 
 app.use(express.json());
 
@@ -42,7 +46,7 @@ async function generateContentSafe(
     maxRetries?: number;
   }
 ): Promise<string | null> {
-  const modelsToTry = ['gemini-3.7-flash', 'gemini-flash-latest'];
+  const modelsToTry = GEMINI_MODELS;
   const maxRetries = params.maxRetries ?? 2;
 
   for (const model of modelsToTry) {
@@ -99,10 +103,11 @@ interface ToolExecutionResult {
   summary: string;
   data: any;
   liveGrounding?: boolean;
-  sourceType?: 'live_scraper' | 'google_search' | 'apollo_connector' | 'linkedin_connector' | 'heuristic';
+  sourceType?: 'live_scraper' | 'google_search' | 'apollo_connector' | 'linkedin_search' | 'unavailable';
 }
 
-// Live web & market knowledge engine with direct internet scraper and connector enrichers
+// Runs one research tool. Every result is tagged with where it came from; a tool that
+// cannot run returns an explicit "unavailable" result instead of placeholder data.
 async function executeAgentTool(
   toolName: string,
   query: string,
@@ -141,61 +146,54 @@ async function executeAgentTool(
         sourceType: 'live_scraper',
       };
     }
+    if (!ai) {
+      return unavailableResult(toolName, query, `could not fetch ${rawTarget} (${liveScrape.errorMessage || 'no response'})`);
+    }
+    // With Gemini available, fall through to a search-grounded lookup instead.
   }
 
-  // 2. APOLLO.IO CONNECTOR & B2B ENRICHMENT
+  // 2. APOLLO.IO: real API lookup, only when the user has supplied their own key
   if (toolName === 'apollo_enrichment') {
     const apolloData = await enrichWithApollo(cleanComp, targetDomain, connectorSettings?.apollo?.apiKey);
+    const ok = apolloData.status === 'ok';
     return {
       toolName,
       query,
-      summary: `Apollo.io enriched intelligence for ${cleanComp}: verified tech stack, decision maker personas, primary domain patterns, and funding stage.`,
+      summary: ok
+        ? `Apollo.io record for ${apolloData.organization?.name}: ${[
+            apolloData.organization?.estimatedNumEmployees ? `~${apolloData.organization.estimatedNumEmployees} employees` : '',
+            apolloData.organization?.latestFundingStage || '',
+            apolloData.organization?.industries?.slice(0, 2).join(', ') || '',
+          ].filter(Boolean).join(' · ') || 'organisation found'}.`
+        : apolloData.note || 'Apollo enrichment unavailable.',
       data: apolloData,
-      liveGrounding: true,
-      sourceType: 'apollo_connector',
+      liveGrounding: ok,
+      sourceType: ok ? 'apollo_connector' : 'unavailable',
     };
   }
 
-  // 3. LINKEDIN CONNECTOR & ORG PROFILE
+  // 3. LINKEDIN SIGNALS: public headcount / leadership info found through Google Search grounding.
+  //    This does not log in to LinkedIn or call a LinkedIn API.
   if (toolName === 'linkedin_company_profile') {
-    const linkedinData = await enrichWithLinkedIn(cleanComp, targetDomain);
-    
-    // Also try live search grounding for LinkedIn employee count
     if (ai) {
-      try {
-        const linkedInSearch = await generateContentSafe(ai, {
-          contents: `Search LinkedIn company profile and headcount data for "${cleanComp}". Return verified employee headcount count, 1-year growth %, and leadership team.`,
-          tools: [{ googleSearch: {} }],
-          maxRetries: 1,
-        });
+      const linkedInSearch = await generateContentSafe(ai, {
+        contents: `Search the public web (including the public LinkedIn company page) for "${cleanComp}". Report only what the sources state: employee headcount, headcount growth, notable recent hires or open roles, and current leadership. If a figure is not stated in a source, say it was not found. Do not estimate.`,
+        tools: [{ googleSearch: {} }],
+        maxRetries: 1,
+      });
 
-        if (linkedInSearch) {
-          return {
-            toolName,
-            query,
-            summary: linkedInSearch.slice(0, 320).replace(/\n+/g, ' ').trim() + (linkedInSearch.length > 320 ? '...' : ''),
-            data: {
-              ...linkedinData,
-              liveGroundedReport: linkedInSearch,
-              linkedinUrl: `https://www.linkedin.com/company/${cleanComp.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-            },
-            liveGrounding: true,
-            sourceType: 'linkedin_connector',
-          };
-        }
-      } catch {
-        // Fallback to linkedinData
+      if (linkedInSearch) {
+        return {
+          toolName,
+          query,
+          summary: linkedInSearch.slice(0, 320).replace(/\n+/g, ' ').trim() + (linkedInSearch.length > 320 ? '...' : ''),
+          data: { fullReport: linkedInSearch, grounded: true, method: 'google_search_grounding', extractedAt: Date.now() },
+          liveGrounding: true,
+          sourceType: 'linkedin_search',
+        };
       }
     }
-
-    return {
-      toolName,
-      query,
-      summary: `Analyzed LinkedIn profile for ${cleanComp}: employee distribution, headcount trajectory, department ratios, and organizational hierarchy.`,
-      data: linkedinData,
-      liveGrounding: true,
-      sourceType: 'linkedin_connector',
-    };
+    return unavailableResult(toolName, query);
   }
 
   // 4. GOOGLE SEARCH LIVE GROUNDING FOR FINANCIALS, NEWS & COMPETITORS
@@ -247,44 +245,19 @@ Provide a concise, factual summary (2-4 sentences) with dense signal and specifi
     }
   }
 
-  // Heuristic fallbacks for offline or when search quota is exceeded
-  const cleanSlug = cleanComp.toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Search was unavailable (no key, quota, or an error). Say so; assume nothing.
+  return unavailableResult(toolName, query);
+}
 
-  if (toolName === 'recent_news_search') {
-    return {
-      toolName,
-      query,
-      summary: `Scanned recent public announcements and industry coverage for ${cleanComp}: platform updates, customer adoption milestones, and strategic momentum.`,
-      data: {
-        recentThemes: ['Enterprise platform expansion', 'Accelerated product release cycle', 'Strategic ecosystem integrations'],
-        coverageTimeframe: 'Past 6-12 months',
-      },
-      sourceType: 'heuristic',
-    };
-  } else if (toolName === 'competitor_analysis') {
-    return {
-      toolName,
-      query,
-      summary: `Evaluated competitive landscape for ${cleanComp}: direct peer alternatives, category incumbents, and core differentiation vectors.`,
-      data: {
-        competitiveLandscape: 'Incumbent enterprise suites vs. modern agile specialized platforms',
-        differentiationFocus: 'Speed of implementation, user experience, and modern API architecture',
-      },
-      sourceType: 'heuristic',
-    };
-  } else {
-    return {
-      toolName,
-      query,
-      summary: `Retrieved industry classification, market category, headquarters locations, capital structure, and investor backing for ${cleanComp}.`,
-      data: {
-        industry: 'Enterprise Software & Modern Technology',
-        hq: 'San Francisco, CA / Distributed Hubs',
-        capitalStatus: 'Growth Stage Venture Backed',
-      },
-      sourceType: 'heuristic',
-    };
-  }
+function unavailableResult(toolName: string, query: string, reason?: string): ToolExecutionResult {
+  return {
+    toolName,
+    query,
+    summary: `No data from "${toolName.replace(/_/g, ' ')}": ${reason || 'web search was unavailable (no API key, rate limit, or an error)'}. Nothing was assumed in its place.`,
+    data: { available: false, reason: reason || 'search unavailable' },
+    liveGrounding: false,
+    sourceType: 'unavailable',
+  };
 }
 
 // Autonomous Agent Research Loop
@@ -313,14 +286,20 @@ async function runAutonomousResearch(
   });
 
   // Available tool list
-  const availableTools = [
-    'scrape_company_site',
-    'linkedin_company_profile',
-    'lookup_financials_funding',
-    'recent_news_search',
-    'competitor_analysis',
-    'apollo_enrichment',
-  ];
+  const TOOL_DESCRIPTIONS: Record<string, string> = {
+    scrape_company_site: 'Official website: products, business model, problem solved, target customers',
+    linkedin_company_profile: 'Public LinkedIn signals via web search: headcount, growth, hiring, leadership',
+    lookup_financials_funding: 'Funding stage, valuation, revenue run-rate, investors',
+    recent_news_search: 'Press releases, product launches, client announcements in the last 6-12 months',
+    competitor_analysis: 'Direct competitors, differentiation points, customer switching triggers',
+    apollo_enrichment: 'Apollo.io organisation record: employee count, funding stage, tech stack',
+  };
+  const availableTools = Object.keys(TOOL_DESCRIPTIONS).filter((tool) => {
+    if (tool === 'linkedin_company_profile') return connectors?.linkedin?.enabled !== false;
+    // Apollo only runs with the user's own API key
+    if (tool === 'apollo_enrichment') return connectors?.apollo?.enabled !== false && Boolean(connectors?.apollo?.apiKey?.trim());
+    return true;
+  });
 
   // Initial tool plan: Start with direct website scraper
   let currentToolName = 'scrape_company_site';
@@ -331,7 +310,7 @@ async function runAutonomousResearch(
 
   let stepNumber = 1;
   let reachedSufficiency = false;
-  let finalStopReason = `Maximum investigative tool budget reached (${MAX_TOOLS} tools dispatched). Sufficient multi-source signal captured.`;
+  let finalStopReason = `Tool budget reached (${MAX_TOOLS} tool runs).`;
 
   while (stepNumber <= MAX_TOOLS && !reachedSufficiency) {
     searchQueries.push(currentQuery);
@@ -379,11 +358,9 @@ Summary: ${tr.summary}
 Data: ${JSON.stringify(tr.data)}`).join('\n\n')}
 
 AVAILABLE TOOLS TO CALL (Tool ${stepNumber} of ${MAX_TOOLS}):
-- "scrape_company_site": Official website products, business model, problem solved, target customers
-- "linkedin_company_profile": Employee count range, YoY growth rate, department ratio (Engineering vs Sales), key executives
-- "lookup_financials_funding": Funding stage, valuation, revenue run-rate, investors
-- "recent_news_search": Recent press releases, product launches, client announcements in last 6-12 months
-- "competitor_analysis": Direct competitors, differentiation points, customer switching triggers
+${availableTools.map((t) => `- "${t}": ${TOOL_DESCRIPTIONS[t]}`).join('\n')}
+
+A tool whose data says available:false or status:not_connected returned nothing. Do not count it as evidence.
 
 DECISION PROTOCOL:
 1. Assess the current intelligence sufficiency score (0-100) based on whether you have gathered enough factual data to synthesize:
@@ -401,7 +378,7 @@ Respond strictly with valid JSON conforming to this schema:
   "sufficiencyScore": number,
   "reasoning": "string",
   "nextAction": "call_tool" | "stop_and_synthesize",
-  "nextTool": "scrape_company_site" | "linkedin_company_profile" | "lookup_financials_funding" | "recent_news_search" | "competitor_analysis",
+  "nextTool": ${availableTools.map((t) => `"${t}"`).join(' | ')},
   "nextQuery": "string",
   "nextRationale": "string"
 }`;
@@ -430,11 +407,13 @@ Respond strictly with valid JSON conforming to this schema:
     }
 
     // Fallback heuristic evaluation if Gemini was offline or response failed
-    if (!sufficiencyScore) {
-      sufficiencyScore = stepNumber === 1 ? 52 : stepNumber === 2 ? 82 : 96;
-      reasoning = stepNumber >= 3 
-        ? `Sufficient signals gathered across website, LinkedIn, and market trajectory. Ready for synthesis.`
-        : `Investigating additional signals to achieve high confidence threshold.`;
+    const modelEvaluated = sufficiencyScore > 0;
+    if (!modelEvaluated) {
+      // No model verdict: score is simply the share of the tool budget that returned live data.
+      sufficiencyScore = Math.round((toolResults.filter((t) => t.liveGrounding).length / MAX_TOOLS) * 100);
+      reasoning = stepNumber >= 3
+        ? `Model evaluation unavailable. Stopping after ${stepNumber} tools on the fixed fallback schedule.`
+        : `Model evaluation unavailable. Continuing on the fixed fallback schedule.`;
       
       const uncalledTools = availableTools.filter(t => !toolResults.some(r => r.toolName === t));
       if (stepNumber >= 3 || uncalledTools.length === 0) {
@@ -473,7 +452,9 @@ Respond strictly with valid JSON conforming to this schema:
     // Check termination conditions
     if (nextAction === 'stop_and_synthesize' || sufficiencyScore >= SUFFICIENCY_THRESHOLD || stepNumber >= MAX_TOOLS) {
       reachedSufficiency = true;
-      finalStopReason = `Model achieved confidence threshold (${sufficiencyScore}%) with reasoning: "${reasoning}". Synthesis initiated.`;
+      finalStopReason = modelEvaluated
+        ? `Model stopped at ${sufficiencyScore}% sufficiency: "${reasoning}"`
+        : `Model evaluation was unavailable, so the agent stopped after ${stepNumber} tool runs on a fixed schedule.`;
       break;
     }
 
@@ -488,7 +469,7 @@ Respond strictly with valid JSON conforming to this schema:
   // 5. Synthesize final brief
   onProgress?.('agent_step', {
     stepNumber: stepNumber + 1,
-    thought: `Model initiating final synthesis: Generating verified company dossier, executive hooks, verbatim talking scripts, and objection counters from ${toolResults.length} grounded tool signals.`,
+    thought: `Synthesising the brief from ${toolResults.filter((t) => t.liveGrounding).length} of ${toolResults.length} tool runs that returned live data.`,
     actionType: 'synthesizing',
     timestamp: Date.now(),
   });
@@ -506,14 +487,21 @@ Pitch Focus: "${pitchFocus || 'Enterprise Value Proposition'}"
 EVIDENCE FROM AUTONOMOUS TOOL RUNS (${toolResults.length} tools executed):
 ${toolResults.map((tr, i) => `=== TOOL ${i + 1}: ${tr.toolName} (Query: "${tr.query}") ===\n${JSON.stringify(tr.data, null, 2)}`).join('\n\n')}
 
+GROUND RULES:
+- Use only facts supported by the evidence above. A tool result with available:false or status:not_connected contains no evidence.
+- Where a fact is not in the evidence, write "Not found in research" instead of guessing. This applies to headcount, growth, funding, valuation and revenue.
+- Never invent executive names. List an executive only if the evidence names them; otherwise return an empty keyExecutives array.
+- Include departmentBreakdown entries only if the evidence supports them; otherwise return an empty array.
+- Talking points, objections and discovery questions are your reasoning, and may be inferred, but each must tie back to a signal in the evidence.
+
 TASK:
-Synthesize a comprehensive, highly accurate Company Dossier and Meeting Brief.
+Synthesize a Company Dossier and Meeting Brief.
 You MUST provide:
 1. An in-depth explanation of EXACTLY what the company does, its core products, target customers, and business model.
 2. Employee strength with exact/estimated headcount range, LinkedIn headcount growth, and department breakdown.
 3. Industry classification, sector, sub-industry, and headquarters.
 4. Official website URL and LinkedIn company URL.
-5. Key leadership/executives identified with verified names and titles.
+5. Key leadership/executives named in the evidence, with titles.
 6. Sharp, non-templated talking points, objection pivots, SPIN discovery questions, and a 60-second cheat sheet.
 
 Format strictly as JSON with this exact schema:
@@ -1086,7 +1074,7 @@ app.post("/api/research", async (req, res) => {
   }
 });
 
-// Live Company Discovery & Web Search API (10,000+ Indian companies & Global Directory)
+// Company discovery: curated list plus live Google Search grounding
 app.get("/api/companies/search", async (req, res) => {
   const { q, category, region, city } = req.query;
   const queryStr = (q as string) || '';
@@ -1103,7 +1091,7 @@ app.get("/api/companies/search", async (req, res) => {
       city: cityStr,
       count: results.length,
       companies: results,
-      totalIndexedIndianEntities: '10,000+',
+      totalIndexedIndianEntities: String(TOP_INDIAN_COMPANIES.length),
     });
   } catch (err: any) {
     console.error("[Company Search Error]:", err);
@@ -1128,63 +1116,57 @@ app.get("/api/scrape-website", async (req, res) => {
   }
 });
 
-// Connector Status & Integrations Hub API
+// Connector status: reports what is actually available on this server
 app.get("/api/connectors", (req, res) => {
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY);
-  
+  const searchStatus = hasGeminiKey ? 'active' : 'needs_gemini_key';
+
   res.json({
+    geminiModels: GEMINI_MODELS,
     connectors: [
       {
         id: 'webScraper',
-        name: 'Direct Live Web Scraper',
-        category: 'Live Web Scraper',
+        name: 'Website scraper',
         status: 'active',
-        details: 'Native HTTP/Cheerio internet crawler. Can access and parse any public company website, landing pages, metadata, and core product offerings in real-time.',
-        hasCustomKey: false,
-        capabilities: ['Live HTML Parsing', 'Meta Description Extraction', 'Headings & Hero Analysis', 'Tech Stack Fingerprinting'],
-      },
-      {
-        id: 'apollo',
-        name: 'Apollo.io B2B Intelligence',
-        category: 'B2B Database',
-        status: 'connected',
-        details: 'Enriches target accounts with verified decision maker buyer personas, employee headcount ranges, direct dial patterns, and technology stack tags.',
-        hasCustomKey: false,
-        capabilities: ['Buyer Persona Mapping', 'Verified Tech Stack', 'Email Pattern Verification', 'Revenue & Headcount Tiering'],
-      },
-      {
-        id: 'linkedin',
-        name: 'LinkedIn Sales Navigator Graph',
-        category: 'Social & Org Graph',
-        status: 'connected',
-        details: 'Analyzes organizational headcount trajectory, department ratios (Engineering vs. Sales), key executive leadership, and active hiring growth.',
-        hasCustomKey: false,
-        capabilities: ['Headcount Growth Rate', 'Department Ratio Breakdown', 'Executive Roster', 'Active Job Openings'],
+        details: 'Fetches a public company web page over HTTP and parses it with Cheerio (title, meta description, headings, key paragraphs, tech clues).',
       },
       {
         id: 'googleSearch',
-        name: 'Google Search Grounding Engine',
-        category: 'Search Engine',
-        status: hasGeminiKey ? 'active' : 'ready',
-        details: 'Real-time multi-source web discovery and live news grounding for financial rounds, press releases, and competitive positioning.',
-        hasCustomKey: hasGeminiKey,
-        capabilities: ['Real-time News Grounding', 'Competitor Discovery', 'SEC & Venture Funding Tracking'],
+        name: 'Google Search grounding',
+        status: searchStatus,
+        details: 'Gemini with Google Search grounding, used for funding, news and competitor lookups.',
+      },
+      {
+        id: 'linkedin',
+        name: 'LinkedIn signals (via search)',
+        status: searchStatus,
+        details: 'Public headcount, hiring and leadership information found through Google Search grounding. No LinkedIn login or LinkedIn API is used.',
+      },
+      {
+        id: 'apollo',
+        name: 'Apollo.io',
+        status: 'needs_user_key',
+        details: 'Calls the Apollo organisation enrichment API with the API key the user enters in the app. Skipped when no key is set.',
       },
     ],
   });
 });
 
-// Test Connector Connection API
+// Connector test: runs a real check for the chosen connector
 app.post("/api/connectors/test", async (req, res) => {
   const { connectorId, apiKey, testUrl } = req.body;
 
-  if (!connectorId) {
-    res.status(400).json({ error: "connectorId is required" });
+  if (!['apollo', 'linkedin', 'webScraper', 'googleSearch'].includes(connectorId)) {
+    res.status(400).json({ error: "connectorId must be one of apollo, linkedin, webScraper, googleSearch" });
     return;
   }
 
   try {
-    const testResult = await testConnector(connectorId, { apiKey, testUrl });
+    const testResult = await testConnector(connectorId, {
+      apiKey,
+      testUrl,
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+    });
     res.json(testResult);
   } catch (err: any) {
     res.status(500).json({ success: false, message: err?.message || "Connector test failed" });

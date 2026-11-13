@@ -15,12 +15,12 @@ import { CompanyDiscoveryModal } from './components/CompanyDiscoveryModal';
 import { Sparkles, Compass, AlertCircle, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'meeting_prep_briefs_v1';
-const STORAGE_CONNECTORS_KEY = 'meeting_prep_connectors_v1';
+const STORAGE_CONNECTORS_KEY = 'meeting_prep_connectors_v2';
 
 const DEFAULT_CONNECTORS: ConnectorConfig = {
   apollo: {
     enabled: true,
-    status: 'connected',
+    status: 'disconnected',
     autoEnrichContacts: true,
   },
   linkedin: {

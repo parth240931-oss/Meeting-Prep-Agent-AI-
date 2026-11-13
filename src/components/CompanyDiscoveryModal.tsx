@@ -25,7 +25,7 @@ interface CompanyDiscoveryModalProps {
 }
 
 const REGIONS = [
-  { id: 'india', label: '🇮🇳 India Index (10,000+ Entities)', badge: '10K+ Database' },
+  { id: 'india', label: '🇮🇳 India (curated list + live search)', badge: 'India' },
   { id: 'all', label: '🌐 All Tech & Global', badge: 'Global & India' },
   { id: 'global', label: '🇺🇸 US & International', badge: 'Global Tech' },
 ];
@@ -87,7 +87,7 @@ export const CompanyDiscoveryModal: React.FC<CompanyDiscoveryModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [companies, setCompanies] = useState<DiscoveredCompany[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [totalCount, setTotalCount] = useState<string>('10,000+');
+  const [totalCount, setTotalCount] = useState<string>('');
 
   const fetchCompanies = async (
     query: string,
@@ -162,11 +162,11 @@ export const CompanyDiscoveryModal: React.FC<CompanyDiscoveryModalProps> = ({
                 Indian & Global Corporate Index
               </span>
               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold font-mono">
-                🇮🇳 {totalCount} Indian Companies Indexed
+                🇮🇳 {totalCount ? `${totalCount} curated Indian companies` : 'Curated Indian companies'} + live web search
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-light font-serif text-[#1A1A1A]">
-              Company Finder & 10,000+ Indian Enterprise Registry
+              Company Finder: Indian & Global Companies
             </h2>
           </div>
 
@@ -293,7 +293,7 @@ export const CompanyDiscoveryModal: React.FC<CompanyDiscoveryModalProps> = ({
             <div className="py-16 text-center space-y-3">
               <RefreshCw className="w-6 h-6 animate-spin text-orange-600 mx-auto" />
               <p className="text-xs font-serif italic text-[#8C8980]">
-                Scanning 10,000+ Indian corporate index, live web scrapers, and global registries...
+                Searching the curated company list and the live web...
               </p>
             </div>
           )}
@@ -429,7 +429,7 @@ export const CompanyDiscoveryModal: React.FC<CompanyDiscoveryModalProps> = ({
         {/* Modal Footer */}
         <div className="p-4 border-t border-[#E5E2D9] bg-[#F8F6F1] flex flex-wrap items-center justify-between gap-2 text-xs text-[#8C8980]">
           <span className="font-serif italic">
-            Over 10,000+ Indian corporate entities, startups, unicorns, and global enterprises ready for autonomous deep research.
+            Results come from a small curated list plus live Google Search results. Pick any company to research it.
           </span>
           <button
             type="button"

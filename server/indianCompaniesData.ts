@@ -13,7 +13,8 @@ export interface IndianCompanyRecord {
   isUnicorn?: boolean;
 }
 
-// 250+ High-fidelity verified top Indian companies & unicorns
+// Hand-curated list of well-known Indian companies. Headcount and funding figures are
+// approximate snapshots written at build time, not live data.
 export const TOP_INDIAN_COMPANIES: IndianCompanyRecord[] = [
   // Unicorns & SaaS
   {
@@ -930,8 +931,7 @@ export const INDIAN_SECTORS = [
 ];
 
 /**
- * Procedural Generator for indexing 10,000+ Indian companies across sectors,
- * tech clusters, and listed SME / corporate patterns.
+ * Filters the curated list by query, sector and city.
  */
 export function searchIndianCompaniesIndex(
   query: string,
@@ -940,10 +940,10 @@ export function searchIndianCompaniesIndex(
 ): IndianCompanyRecord[] {
   const cleanQ = query.trim().toLowerCase();
 
-  // 1. Filter our core verified dataset
-  let results = TOP_INDIAN_COMPANIES.filter((item) => {
+  // Filter the curated dataset
+  const results = TOP_INDIAN_COMPANIES.filter((item) => {
     // Sector filter
-    if (sector && sector !== 'All Sectors') {
+    if (sector && !['all', 'all sectors'].includes(sector.toLowerCase())) {
       if (sector.includes('Unicorn') && !item.isUnicorn) return false;
       if (!sector.includes('Unicorn')) {
         const sectorClean = sector.toLowerCase().split('&')[0].trim();
@@ -975,13 +975,6 @@ export function searchIndianCompaniesIndex(
     return matchName || matchDomain || matchDesc || matchCity || matchState || matchTags;
   });
 
-  // If query is broad or specifically asking for Indian entities, synthesize procedural registry matches
-  // from our massive 10,000-entity algorithmic generator across 28 states
-  if (results.length < 15 && cleanQ) {
-    const procedural = generateProceduralIndianCompanies(cleanQ, sector, cityFilter);
-    results = [...results, ...procedural];
-  }
-
   // Deduplicate results by domain and name to guarantee unique entities
   const seen = new Set<string>();
   const deduplicated: IndianCompanyRecord[] = [];
@@ -994,144 +987,4 @@ export function searchIndianCompaniesIndex(
   }
 
   return deduplicated;
-}
-
-/**
- * Algorithmic expansion engine for the 10,000+ Indian corporate and tech directory.
- */
-function generateProceduralIndianCompanies(
-  query: string,
-  sector: string,
-  cityFilter?: string
-): IndianCompanyRecord[] {
-  const additionalResults: IndianCompanyRecord[] = [];
-  const queryLower = query.toLowerCase();
-  const baseKeyword = query.split(' ')[0].trim() || 'bharat';
-  const cleanKeyword = cleanName(baseKeyword);
-
-  const CITIES = [
-    { city: 'Bengaluru', state: 'Karnataka' },
-    { city: 'Mumbai', state: 'Maharashtra' },
-    { city: 'Gurugram', state: 'Haryana' },
-    { city: 'Hyderabad', state: 'Telangana' },
-    { city: 'Pune', state: 'Maharashtra' },
-    { city: 'Chennai', state: 'Tamil Nadu' },
-    { city: 'Noida', state: 'Uttar Pradesh' },
-    { city: 'Ahmedabad', state: 'Gujarat' },
-    { city: 'Kochi', state: 'Kerala' },
-    { city: 'Jaipur', state: 'Rajasthan' },
-  ];
-
-  const SECTOR_TEMPLATES = [
-    {
-      cat: 'SaaS & Enterprise' as const,
-      suffix: 'Technologies',
-      domainSuffix: 'tech',
-      desc: 'Cloud-native enterprise software and automation platform delivering digital workflows for global B2B operations.',
-      industry: 'Enterprise Software & SaaS',
-      headcount: '150 - 500 employees',
-      funding: 'Series A / Series B ($15M - $45M raised)',
-      tags: ['SaaS', 'Cloud', 'B2B Automation', 'Enterprise'],
-    },
-    {
-      cat: 'FinTech' as const,
-      suffix: 'Fintech Solutions',
-      domainSuffix: 'fintech',
-      desc: 'Digital lending, corporate expense, and automated reconciliation suite for Indian enterprises and MSMEs.',
-      industry: 'Financial Technology & Neo-Banking',
-      headcount: '100 - 350 employees',
-      funding: 'Series B ($30M raised)',
-      tags: ['FinTech', 'Lending', 'UPI', 'Payments'],
-    },
-    {
-      cat: 'AI & DeepTech' as const,
-      suffix: 'AI Labs',
-      domainSuffix: 'ai',
-      desc: 'Machine learning intelligence engine providing multimodal document understanding and real-time inference pipelines.',
-      industry: 'Artificial Intelligence & DeepTech',
-      headcount: '50 - 150 researchers',
-      funding: 'Seed / Series A ($8M - $20M raised)',
-      tags: ['Artificial Intelligence', 'LLMOps', 'Computer Vision', 'DeepTech'],
-    },
-    {
-      cat: 'E-commerce & Quick Commerce' as const,
-      suffix: 'Commerce',
-      domainSuffix: 'retail',
-      desc: 'Next-generation direct-to-consumer and omnichannel retail platform delivering curated essentials across India.',
-      industry: 'D2C Commerce & Logistics',
-      headcount: '200 - 600 employees',
-      funding: 'Series A / Series B ($25M raised)',
-      tags: ['D2C', 'E-Commerce', 'Retail Tech', 'Omnichannel'],
-    },
-    {
-      cat: 'Logistics & Mobility' as const,
-      suffix: 'Logistics',
-      domainSuffix: 'logistics',
-      desc: 'Smart supply chain and multi-modal fleet routing software connecting tier-1 and tier-2 distribution hubs.',
-      industry: 'Supply Chain & Mobility Tech',
-      headcount: '300 - 800 employees',
-      funding: 'Series B / Growth ($40M raised)',
-      tags: ['Logistics', 'Freight', 'Fleet IoT', 'Supply Chain'],
-    },
-  ];
-
-  const seenGenerated = new Set<string>();
-
-  // If search matches Indian patterns or named terms
-  for (let i = 0; i < CITIES.length; i++) {
-    const loc = CITIES[i];
-    if (cityFilter && cityFilter !== 'all' && !loc.city.toLowerCase().includes(cityFilter.toLowerCase())) {
-      continue;
-    }
-
-    const citySlug = cleanName(loc.city);
-
-    for (let j = 0; j < SECTOR_TEMPLATES.length; j++) {
-      const tmpl = SECTOR_TEMPLATES[j];
-      const compName = `${capitalize(baseKeyword)} ${tmpl.suffix} (${loc.city})`;
-      const domainName = `${cleanKeyword}-${citySlug}-${tmpl.domainSuffix}.in`;
-
-      if (seenGenerated.has(domainName)) {
-        continue;
-      }
-
-      if (
-        compName.toLowerCase().includes(queryLower) ||
-        loc.city.toLowerCase().includes(queryLower) ||
-        loc.state.toLowerCase().includes(queryLower) ||
-        tmpl.industry.toLowerCase().includes(queryLower) ||
-        cleanKeyword.length <= 3
-      ) {
-        seenGenerated.add(domainName);
-        additionalResults.push({
-          name: compName,
-          domain: domainName,
-          websiteUrl: `https://${domainName}`,
-          description: `${tmpl.desc} Headquartered in ${loc.city}, ${loc.state}.`,
-          industry: tmpl.industry,
-          category: tmpl.cat,
-          city: loc.city,
-          state: loc.state,
-          estimatedHeadcount: tmpl.headcount,
-          fundingStage: tmpl.funding,
-          tags: [...tmpl.tags, loc.city, 'India Tech'],
-        });
-
-        if (additionalResults.length >= 12) break;
-      }
-    }
-    if (additionalResults.length >= 12) break;
-  }
-
-  return additionalResults;
-}
-
-function capitalize(s: string): string {
-  if (!s) return 'Bharat';
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function cleanName(s: string): string {
-  if (!s) return 'tech';
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
