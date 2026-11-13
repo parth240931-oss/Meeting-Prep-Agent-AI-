@@ -46,7 +46,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
         [connectorId]: {
           loading: false,
           success: data.success,
-          message: data.message || (data.success ? 'Connection verified!' : 'Connection check failed'),
+          message: data.message || (data.success ? 'Connection OK' : 'Connection check failed'),
         },
       }));
     } catch (err: any) {
@@ -77,11 +77,11 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                 Data Connectors Hub
               </span>
               <span className="text-xs font-serif italic text-[#8C8980]">
-                Live Web Scraper & B2B Enriched Graph
+                What the agent can actually reach
               </span>
             </div>
             <h2 className="text-2xl font-light font-serif text-[#1A1A1A]">
-              Connect Apollo, LinkedIn & Live Internet Scraper
+              Research Data Sources
             </h2>
           </div>
 
@@ -113,12 +113,18 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-[#1A1A1A]">Apollo.io</span>
-                  <span className="text-[10px] font-mono font-bold text-green-700 bg-green-100 px-1.5 py-0.2">
-                    ACTIVE
-                  </span>
+                  {localConfig.apollo.apiKey?.trim() ? (
+                    <span className="text-[10px] font-mono font-bold text-green-700 bg-green-100 px-1.5 py-0.2">
+                      KEY ADDED
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono font-bold text-[#8C8980] bg-[#EFEDE7] px-1.5 py-0.2">
+                      NEEDS KEY
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-[#8C8980] truncate mt-0.5">
-                  B2B buyer personas & tech stack
+                  Optional: uses your own API key
                 </p>
               </div>
             </button>
@@ -138,13 +144,13 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-[#1A1A1A]">LinkedIn Graph</span>
-                  <span className="text-[10px] font-mono font-bold text-green-700 bg-green-100 px-1.5 py-0.2">
-                    ACTIVE
+                  <span className="font-bold text-xs text-[#1A1A1A]">LinkedIn Signals</span>
+                  <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-100 px-1.5 py-0.2">
+                    VIA SEARCH
                   </span>
                 </div>
                 <p className="text-[11px] text-[#8C8980] truncate mt-0.5">
-                  Headcount, growth & exec roster
+                  Public headcount & hiring info
                 </p>
               </div>
             </button>
@@ -170,7 +176,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-[#8C8980] truncate mt-0.5">
-                  Access any public website directly
+                  Fetches public web pages
                 </p>
               </div>
             </button>
@@ -192,7 +198,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-[#1A1A1A]">Google Search</span>
                   <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2">
-                    READY
+                    GEMINI
                   </span>
                 </div>
                 <p className="text-[11px] text-[#8C8980] truncate mt-0.5">
@@ -209,9 +215,9 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
               <div className="space-y-6 animate-fadeIn">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">Apollo.io B2B Intelligence Connector</h3>
+                    <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">Apollo.io Organisation Lookup</h3>
                     <p className="text-xs text-[#4A4842] mt-1 font-serif italic">
-                      Enriches company briefings with verified buyer personas, executive contact email conventions, and detected technology stack signals.
+                      Optional. With your own Apollo API key, the agent can pull the company's Apollo record (employee count, funding stage, industry, tech stack). Without a key this source is skipped. No placeholder data is used.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -235,7 +241,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                 <div className="p-4 bg-[#F8F6F1] border border-[#E5E2D9] space-y-4">
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]">
-                      Apollo API Key (Optional / Production Direct Query)
+                      Apollo API Key (optional)
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#8C8980]">
@@ -250,46 +256,28 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                             apollo: { ...localConfig.apollo, apiKey: e.target.value },
                           })
                         }
-                        placeholder="e.g. apollo_live_xxxx... (leave blank for intelligent enrichment)"
+                        placeholder="Paste your Apollo API key, or leave blank to skip Apollo"
                         className="w-full pl-9 pr-4 py-2 border border-[#E5E2D9] bg-white text-xs text-[#1A1A1A] font-mono focus:outline-none focus:border-[#1A1A1A]"
                       />
                     </div>
                     <p className="text-[11px] text-[#8C8980]">
-                      If no custom API key is supplied, the agent uses the pre-configured high-fidelity Apollo organizational synthesizer.
+                      The key is saved in this browser only and sent to this app's server when you run research or test the connection.
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-[#E5E2D9]">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={localConfig.apollo.autoEnrichContacts}
-                        onChange={(e) =>
-                          setLocalConfig({
-                            ...localConfig,
-                            apollo: { ...localConfig.apollo, autoEnrichContacts: e.target.checked },
-                          })
-                        }
-                        className="w-4 h-4 accent-[#1A1A1A]"
-                      />
-                      <span className="text-xs text-[#1A1A1A] font-medium">
-                        Auto-infer decision maker personas & primary email patterns ({`{first}.{last}@{domain}`})
-                      </span>
-                    </label>
-                  </div>
                 </div>
 
                 {/* Capabilities Badges */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8980]">
-                    Extraction Capabilities:
+                    What it returns (when found):
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      'Target Stakeholder Personas',
-                      'Detected Tech Stack & Tools',
-                      'Email Format Pattern Verification',
-                      'Headcount & Revenue Tiers',
+                      'Employee Count',
+                      'Funding Stage & Total Raised',
+                      'Industry Classification',
+                      'Technology Stack Tags',
                     ].map((cap) => (
                       <div key={cap} className="p-2.5 bg-white border border-[#E5E2D9] text-xs flex items-center gap-2 text-[#4A4842]">
                         <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
@@ -335,9 +323,9 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
               <div className="space-y-6 animate-fadeIn">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">LinkedIn Organizational Graph Connector</h3>
+                    <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">LinkedIn Signals (via Web Search)</h3>
                     <p className="text-xs text-[#4A4842] mt-1 font-serif italic">
-                      Inspects corporate headcount trajectory, departmental distribution (Engineering vs. Sales vs. Support), and founder/executive tenures.
+                      Looks up publicly visible LinkedIn information about the company (headcount, hiring, leadership) through Google Search. It does not log in to LinkedIn or use a LinkedIn API.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -359,41 +347,22 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                 </div>
 
                 <div className="p-4 bg-[#F8F6F1] border border-[#E5E2D9] space-y-4">
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={localConfig.linkedin.extractHeadcountHistory}
-                        onChange={(e) =>
-                          setLocalConfig({
-                            ...localConfig,
-                            linkedin: { ...localConfig.linkedin, extractHeadcountHistory: e.target.checked },
-                          })
-                        }
-                        className="w-4 h-4 accent-[#1A1A1A]"
-                      />
-                      <span className="text-xs text-[#1A1A1A] font-medium">
-                        Extract 1-year and 2-year headcount growth percentages and active hiring trajectory
-                      </span>
-                    </label>
-                  </div>
-
                   <div className="p-3 bg-blue-50/70 border border-blue-200 text-xs text-blue-900 leading-relaxed font-sans">
-                    <span className="font-bold">Live Graph Resolution:</span> The agent queries verified corporate profile data, open job openings, and executive roster titles to prevent obsolete title citations.
+                    <span className="font-bold">How it works:</span> the agent asks Gemini to search the public web and report only figures the sources state. Anything it cannot find is marked "not found" in the brief instead of being estimated.
                   </div>
                 </div>
 
                 {/* Capabilities Badges */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8980]">
-                    Extraction Capabilities:
+                    What it returns (when found):
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      'Verified Employee Strength',
-                      'Department Distribution Ratios',
-                      '1-Year Headcount Growth Velocity',
-                      'Executive & Leadership Profiles',
+                      'Employee Headcount',
+                      'Headcount Growth',
+                      'Open Roles & Recent Hires',
+                      'Current Leadership',
                     ].map((cap) => (
                       <div key={cap} className="p-2.5 bg-white border border-[#E5E2D9] text-xs flex items-center gap-2 text-[#4A4842]">
                         <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -414,12 +383,12 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                     {testStatus.linkedin?.loading ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Testing LinkedIn Graph...</span>
+                        <span>Checking...</span>
                       </>
                     ) : (
                       <>
                         <Users className="w-3.5 h-3.5" />
-                        <span>Test LinkedIn Graph</span>
+                        <span>Check Availability</span>
                       </>
                     )}
                   </button>
@@ -439,14 +408,14 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
               <div className="space-y-6 animate-fadeIn">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">Direct Live Internet Web Scraper</h3>
+                    <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">Website Scraper</h3>
                     <p className="text-xs text-[#4A4842] mt-1 font-serif italic">
-                      Direct HTTP crawler powered by Cheerio. Directly fetches and extracts content from any public company website, landing page, or subpage in real-time.
+                      Fetches the company's public web page over HTTP and parses it with Cheerio: title, meta description, headings, key paragraphs and technology clues. Pages that need JavaScript to render, or that block bots, may return little.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
-                      DIRECT INTERNET ACCESS
+                      LIVE HTTP
                     </span>
                   </div>
                 </div>
@@ -490,51 +459,16 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                     </div>
                   )}
 
-                  <div className="space-y-2 pt-2 border-t border-[#E5E2D9]">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={localConfig.webScraper.crawlSubpages}
-                        onChange={(e) =>
-                          setLocalConfig({
-                            ...localConfig,
-                            webScraper: { ...localConfig.webScraper, crawlSubpages: e.target.checked },
-                          })
-                        }
-                        className="w-4 h-4 accent-[#1A1A1A]"
-                      />
-                      <span className="text-xs text-[#1A1A1A] font-medium">
-                        Crawl key subpages (/about, /product, /pricing, /careers) when available
-                      </span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={localConfig.webScraper.extractPricing}
-                        onChange={(e) =>
-                          setLocalConfig({
-                            ...localConfig,
-                            webScraper: { ...localConfig.webScraper, extractPricing: e.target.checked },
-                          })
-                        }
-                        className="w-4 h-4 accent-[#1A1A1A]"
-                      />
-                      <span className="text-xs text-[#1A1A1A] font-medium">
-                        Extract business models and pricing tiers directly from website
-                      </span>
-                    </label>
-                  </div>
                 </div>
 
                 {/* Capabilities Badges */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8980]">
-                    Direct Internet Features:
+                    What it extracts:
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      'Any Custom Domain / Subdomain',
+                      'Page Title',
                       'Meta Description & OG Tags',
                       'Main Headings & Value Props',
                       'Tech Clues & Analytics Detection',
@@ -556,17 +490,17 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                   <div>
                     <h3 className="text-xl font-serif text-[#1A1A1A] font-medium">Google Search Grounding Engine</h3>
                     <p className="text-xs text-[#4A4842] mt-1 font-serif italic">
-                      Powers live news, SEC filings, venture capital announcements, and competitive landscape extraction.
+                      Gemini with Google Search grounding. Used for funding, recent news and competitor lookups.
                     </p>
                   </div>
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold font-mono">
-                    ONLINE
+                    NEEDS GEMINI KEY
                   </span>
                 </div>
 
                 <div className="p-4 bg-[#F8F6F1] border border-[#E5E2D9] space-y-3 font-sans text-xs text-[#4A4842]">
                   <p>
-                    Google Search Grounding runs autonomously inside the research loop to query recent press releases, product launches, customer testimonials, and competitive alternatives for any target company.
+                    Runs inside the research loop whenever the agent decides it needs funding, news or competitor information. It needs a GEMINI_API_KEY on the server; if the key is missing or rate-limited, the step is reported as unavailable.
                   </p>
                 </div>
 
@@ -583,7 +517,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
                     ) : (
                       <Sparkles className="w-3.5 h-3.5" />
                     )}
-                    <span>Verify Search Grounding</span>
+                    <span>Check Availability</span>
                   </button>
 
                   {testStatus.googleSearch && (
@@ -601,7 +535,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
         {/* Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-[#E5E2D9] bg-[#F8F6F1] flex items-center justify-between">
           <div className="text-xs text-[#8C8980] font-serif italic hidden sm:block">
-            Connectors automatically activate during autonomous research cycles.
+            The agent chooses which of these sources to use on each run.
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -618,7 +552,7 @@ export const ConnectorsModal: React.FC<ConnectorsModalProps> = ({
               className="px-6 py-2.5 bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider shadow-xs flex items-center gap-2"
             >
               <Check className="w-4 h-4" />
-              <span>Save & Activate Connectors</span>
+              <span>Save</span>
             </button>
           </div>
         </div>

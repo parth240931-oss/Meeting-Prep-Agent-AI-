@@ -106,6 +106,8 @@ export interface MeetingBrief {
   pitchFocus?: string;
   createdAt: number;
   dataSource?: 'live_research' | 'heuristic_estimate';
+  /** True for the pre-written example briefs bundled with the app. */
+  isSample?: boolean;
   
   companyOverview: CompanyOverview;
 

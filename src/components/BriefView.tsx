@@ -70,6 +70,14 @@ export const BriefView: React.FC<BriefViewProps> = ({
 
   return (
     <div className="w-full space-y-6 animate-fadeIn pb-16 print:p-0 print:space-y-4">
+      {/* Notice for the bundled example briefs */}
+      {brief.isSample && (
+        <div className="bg-[#F8F6F1] border border-[#E5E2D9] p-3 sm:p-4 text-xs sm:text-sm text-[#4A4842] font-sans">
+          <span className="font-bold uppercase tracking-wider text-[10px] text-[#1A1A1A] mr-2">Sample brief</span>
+          A pre-written example that shows the output format. It was not produced by a live research run, and its figures may be out of date. Run your own research above for a live brief.
+        </div>
+      )}
+
       {/* Data Source Notice Banner for Heuristic Estimates */}
       {brief.dataSource === 'heuristic_estimate' && (
         <div className="bg-amber-50 border border-amber-300/80 p-4 sm:p-5 flex items-start gap-3.5 text-amber-900 shadow-sm">
@@ -235,7 +243,7 @@ export const BriefView: React.FC<BriefViewProps> = ({
               <Layers className="w-3.5 h-3.5" />
               What the Company Does (Core Business Model & Problem Solved)
             </span>
-            <span className="font-mono text-[10px] text-[#8C8980]">Verified Web Scrape</span>
+            <span className="font-mono text-[10px] text-[#8C8980]">{brief.isSample ? 'Sample' : brief.dataSource === 'heuristic_estimate' ? 'Offline estimate' : 'From live research'}</span>
           </div>
           <p className="text-sm sm:text-base text-[#1A1A1A] font-serif leading-relaxed">
             {companyOverview.whatCompanyDoes || `${brief.companyName} is a leading provider in ${companyOverview.industry}, delivering core platforms to accelerate enterprise workflows.`}
@@ -819,14 +827,14 @@ export const BriefView: React.FC<BriefViewProps> = ({
             </div>
           </div>
 
-          {/* Recent Verified Signals */}
+          {/* Recent Signals */}
           <div className="bg-[#F8F6F1] border border-[#E5E2D9] p-6 sm:p-8 space-y-4">
             <div className="border-b border-[#E5E2D9] pb-3">
               <div className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">
                 Live Pulse
               </div>
               <h3 className="text-lg font-serif font-bold text-[#1A1A1A]">
-                Recent Verified Signals & Catalysts
+                Recent Signals & Catalysts
               </h3>
             </div>
             <div className="space-y-3">

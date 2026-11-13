@@ -9,6 +9,7 @@ export const SAMPLE_BRIEFS: MeetingBrief[] = [
     pitchFocus: 'Enterprise Developer Infrastructure & Automated Governance',
     createdAt: Date.now() - 3600000 * 2,
     dataSource: 'live_research',
+    isSample: true,
     companyOverview: {
       whatCompanyDoes: 'Linear develops an issue tracking and project management system tailored for high-velocity software engineering and product teams, prioritizing keyboard navigation, sub-50ms sync, and opinionated workflow rituals.',
       tagline: 'The issue tracking and project management tool built for high-velocity software teams.',
@@ -236,6 +237,7 @@ export const SAMPLE_BRIEFS: MeetingBrief[] = [
     pitchFocus: 'Automated Real-time ERP Data Sync & AI Expense Reconciliation',
     createdAt: Date.now() - 3600000 * 5,
     dataSource: 'live_research',
+    isSample: true,
     companyOverview: {
       whatCompanyDoes: 'Ramp delivers an all-in-one corporate spend management platform unifying corporate cards, automated accounts payable (Bill Pay), employee expense reimbursements, travel booking, and vendor contract procurement.',
       tagline: 'The ultimate corporate card and finance automation platform built to save companies time and money.',

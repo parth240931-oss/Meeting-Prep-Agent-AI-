@@ -25,7 +25,7 @@ export interface DiscoveredCompanyItem {
   state?: string;
 }
 
-// Curated live seed registry of high-profile global & international tech companies
+// Small curated list of well-known global tech companies (approximate snapshot figures)
 const SEED_COMPANIES: DiscoveredCompanyItem[] = [
   {
     name: 'Linear',
@@ -37,7 +37,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Series B ($48M raised)',
     tags: ['Issue Tracking', 'Productivity', 'Git Workflows', 'Engineering'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -50,7 +50,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'New York, NY',
     fundingStage: 'Series D-2 ($1.2B raised, $7.6B Valuation)',
     tags: ['Corporate Cards', 'Expense Management', 'Fintech', 'Accounts Payable'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -63,7 +63,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA (Remote)',
     fundingStage: 'Series B ($116M raised)',
     tags: ['PostgreSQL', 'Open Source', 'BaaS', 'AI Vectors'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -76,7 +76,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Series E ($250M raised, $3.25B Valuation)',
     tags: ['Next.js', 'Frontend Cloud', 'Serverless', 'AI SDK'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -89,7 +89,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'New York, NY',
     fundingStage: 'Public (NASDAQ: DDOG)',
     tags: ['Observability', 'APM', 'Cloud Security', 'DevOps'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -102,7 +102,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA / Dublin',
     fundingStage: 'Private / Pre-IPO (~$70B Valuation)',
     tags: ['Payments', 'Billing', 'Financial API', 'Global Commerce'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -115,7 +115,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Series C ($3.2B Valuation)',
     tags: ['Internal Tools', 'Low-Code', 'Enterprise Portals', 'SQL UI'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -128,7 +128,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Private ($12.5B Valuation)',
     tags: ['Design', 'Prototyping', 'Design Systems', 'Collaboration'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -141,7 +141,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Seed / Series A',
     tags: ['Email API', 'React Email', 'Developer Experience'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -154,7 +154,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'Bozeman, MT / San Mateo, CA',
     fundingStage: 'Public (NYSE: SNOW)',
     tags: ['Data Cloud', 'Data Warehouse', 'SQL Analytics', 'AI Data'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -167,7 +167,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Series C ($1.25B Valuation)',
     tags: ['MLOps', 'LLMOps', 'Experiment Tracking', 'AI Models'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
   {
@@ -180,7 +180,7 @@ const SEED_COMPANIES: DiscoveredCompanyItem[] = [
     location: 'San Francisco, CA',
     fundingStage: 'Series A ($60M raised, $2.5B Valuation)',
     tags: ['AI Editor', 'IDE', 'Code Generation', 'Developer Velocity'],
-    source: 'Verified Global Index',
+    source: 'Curated list',
     region: 'Global',
   },
 ];
@@ -197,7 +197,7 @@ function mapIndianToDiscovered(rec: IndianCompanyRecord): DiscoveredCompanyItem 
     location: `${rec.city}, ${rec.state} (India)`,
     fundingStage: rec.fundingStage,
     tags: rec.tags,
-    source: rec.isUnicorn ? '🇮🇳 India Unicorn Index' : '🇮🇳 India 10,000+ Index',
+    source: rec.isUnicorn ? '🇮🇳 Curated list · Unicorn' : '🇮🇳 Curated list',
     isUnicorn: rec.isUnicorn,
     region: 'India',
     city: rec.city,
@@ -206,8 +206,8 @@ function mapIndianToDiscovered(rec: IndianCompanyRecord): DiscoveredCompanyItem 
 }
 
 /**
- * Searches across the comprehensive 10,000+ Indian corporate index and global directory,
- * with live Gemini Google Search grounding for real-time discoveries.
+ * Searches the curated company lists, then adds live results from Gemini with
+ * Google Search grounding when a Gemini key is available.
  */
 export async function searchAndDiscoverCompanies(
   query: string,
@@ -232,7 +232,7 @@ export async function searchAndDiscoverCompanies(
     cleanQuery.includes('noida') ||
     cleanQuery.includes('unicorn');
 
-  // 1. Search in the 10,000+ Indian corporate index
+  // 1. Search the curated Indian list
   const indianMatches = searchIndianCompaniesIndex(query, category, city).map(mapIndianToDiscovered);
 
   // 2. Search in global seed index (if not strictly India-only)
@@ -293,7 +293,7 @@ Category/Sector: "${category || 'All Tech & Business'}"
 
 TASK:
 Find 4 to 6 real companies matching this search query or theme.
-For each company, provide their official name, verified domain/website, description of product/service (1-2 sentences), industry, estimated headcount, headquarters city & country, and funding or public status.
+For each company, provide their official name, domain/website, description of product/service (1-2 sentences), industry, estimated headcount, headquarters city & country, and funding or public status.
 
 Respond ONLY with a JSON array conforming to this schema:
 [
@@ -312,7 +312,7 @@ Respond ONLY with a JSON array conforming to this schema:
 ]`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.7-flash',
+        model: process.env.GEMINI_MODEL || 'gemini-3.7-flash',
         contents: searchPrompt,
         config: {
           tools: [{ googleSearch: {} }],

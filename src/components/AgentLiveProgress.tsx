@@ -112,7 +112,7 @@ export const AgentLiveProgress: React.FC<AgentLiveProgressProps> = ({
                     )}
                     {step.toolCall?.status === 'completed' && (
                       <span className="text-[10px] font-mono uppercase font-bold text-green-700">
-                        ✓ Verified
+                        ✓ Done
                       </span>
                     )}
                   </div>

@@ -81,13 +81,13 @@ export const ResearchForm: React.FC<ResearchFormProps> = ({
         <div>
           <div className="text-[10px] font-sans font-bold text-orange-600 tracking-[0.25em] uppercase mb-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
-            <span>Autonomous Intelligence & Web Crawler</span>
+            <span>Autonomous Research Agent</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-light font-serif tracking-tight text-[#1A1A1A]">
             Autonomous Meeting Prep <span className="italic font-normal">Synthesis</span>
           </h2>
           <p className="text-xs text-[#4A4842] font-serif italic mt-1 max-w-2xl">
-            Live internet crawler & connected intelligence. Enter any company name, website domain, or discover entities across the web.
+            Enter a company name or website. The agent scrapes the site, searches the web, and decides for itself when it has enough to write your brief.
           </p>
         </div>
 
@@ -111,7 +111,7 @@ export const ResearchForm: React.FC<ResearchFormProps> = ({
               className="px-3 py-1.5 bg-[#1A1A1A] hover:bg-black text-white text-[11px] font-sans font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-2xs transition-all hover:scale-[1.02]"
             >
               <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Connect Apollo & LinkedIn</span>
+              <span>Data Sources</span>
             </button>
           )}
         </div>
@@ -196,7 +196,7 @@ export const ResearchForm: React.FC<ResearchFormProps> = ({
                 className="text-[11px] font-sans px-2.5 py-1 bg-white border border-dashed border-orange-600 text-orange-700 font-bold hover:bg-orange-50 transition-colors flex items-center gap-1 ml-auto sm:ml-0"
               >
                 <Search className="w-3 h-3 text-orange-600" />
-                <span>Search 10,000+ Indian Companies →</span>
+                <span>Find a company to research →</span>
               </button>
             )}
           </div>
@@ -305,16 +305,16 @@ export const ResearchForm: React.FC<ResearchFormProps> = ({
         <div className="p-3 bg-[#FDFCF9] border border-[#E5E2D9] flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C8980]">
-              Active Signals:
+              Data Sources:
             </span>
             <span className="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 border border-emerald-200">
-              <Globe className="w-3 h-3 text-emerald-600" /> Live Web Crawler
+              <Globe className="w-3 h-3 text-emerald-600" /> Website Scraper
             </span>
             <span className="inline-flex items-center gap-1 font-mono text-[10px] text-orange-800 bg-orange-50 px-2 py-0.5 border border-orange-200">
-              <Zap className="w-3 h-3 text-orange-600" /> Apollo Personas
+              <Zap className="w-3 h-3 text-orange-600" /> Apollo (your key)
             </span>
             <span className="inline-flex items-center gap-1 font-mono text-[10px] text-blue-800 bg-blue-50 px-2 py-0.5 border border-blue-200">
-              <Users className="w-3 h-3 text-blue-600" /> LinkedIn Headcount
+              <Users className="w-3 h-3 text-blue-600" /> LinkedIn Signals via Search
             </span>
             <span className="inline-flex items-center gap-1 font-mono text-[10px] text-purple-800 bg-purple-50 px-2 py-0.5 border border-purple-200">
               <Sparkles className="w-3 h-3 text-purple-600" /> Google Search Grounding
@@ -327,7 +327,7 @@ export const ResearchForm: React.FC<ResearchFormProps> = ({
               onClick={onOpenConnectors}
               className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A] hover:underline"
             >
-              Configure Connectors →
+              Data Sources →
             </button>
           )}
         </div>
@@ -336,7 +336,7 @@ export const ResearchForm: React.FC<ResearchFormProps> = ({
         <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#E5E2D9]">
           <div className="text-xs font-serif italic text-[#8C8980] flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
-            <span>Autonomous agent dispatches live website scraper, Apollo intelligence & LinkedIn graph.</span>
+            <span>The agent picks its own research steps and stops when it judges the evidence sufficient.</span>
           </div>
 
           <button

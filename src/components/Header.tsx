@@ -34,10 +34,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="hidden lg:block">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-600">
-              Live Web & B2B Intelligence Engine
+              Meeting Prep Agent
             </div>
             <p className="text-xs text-[#4A4842] font-serif italic">
-              Autonomous scraping, Apollo enrichment & LinkedIn verification
+              Autonomous company research for sales meetings
             </p>
           </div>
         </div>
@@ -61,10 +61,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenConnectors}
               className="flex items-center gap-1.5 px-3 py-2 border border-[#1A1A1A] bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all shadow-2xs"
-              title="Connect Apollo.io, LinkedIn, and Live Web Scraper"
+              title="See and configure the agent's data sources"
             >
               <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden md:inline">Connectors</span>
+              <span className="hidden md:inline">Data Sources</span>
             </button>
           )}
 

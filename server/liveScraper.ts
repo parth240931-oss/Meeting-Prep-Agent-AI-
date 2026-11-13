@@ -1,4 +1,6 @@
 import * as cheerio from 'cheerio';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 
 export interface ScrapedWebsiteData {
   url: string;
@@ -42,6 +44,47 @@ export function extractDomain(input: string): string {
 }
 
 /**
+ * True for loopback, private, link-local and other non-public addresses.
+ */
+function isPrivateAddress(ip: string): boolean {
+  if (isIP(ip) === 6) {
+    const v6 = ip.toLowerCase();
+    if (v6.startsWith('::ffff:')) return isPrivateAddress(v6.slice(7));
+    return v6 === '::' || v6 === '::1' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80');
+  }
+  const [a, b] = ip.split('.').map(Number);
+  return (
+    a === 0 || a === 10 || a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    a >= 224
+  );
+}
+
+/**
+ * The scraper takes a URL from the user, so it must only reach public websites.
+ * Rejects non-http(s) URLs and hosts that resolve to internal addresses.
+ */
+export async function assertPublicUrl(rawUrl: string): Promise<void> {
+  const parsed = new URL(rawUrl);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only http and https URLs can be scraped');
+  }
+  const host = parsed.hostname.replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') || host.endsWith('.local')) {
+    throw new Error('Internal hosts cannot be scraped');
+  }
+  const addresses = isIP(host) ? [{ address: host }] : await lookup(host, { all: true });
+  if (addresses.length === 0 || addresses.some((entry) => isPrivateAddress(entry.address))) {
+    throw new Error('Internal hosts cannot be scraped');
+  }
+}
+
+const MAX_REDIRECTS = 4;
+
+/**
  * Directly accesses any public company website on the internet via HTTP GET,
  * follows redirects, and parses HTML content to extract core value propositions,
  * products, and messaging.
@@ -76,22 +119,35 @@ export async function scrapeCompanyWebsite(urlOrDomain: string): Promise<Scraped
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 7500);
 
-    const response = await fetch(targetUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': userAgents[0],
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache',
-      },
-      signal: controller.signal,
-      redirect: 'follow',
-    });
+    // Follow redirects by hand so every hop is checked against the public-host rule.
+    let currentUrl = targetUrl;
+    let response: Response;
+    for (let hop = 0; ; hop++) {
+      await assertPublicUrl(currentUrl);
+      response = await fetch(currentUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': userAgents[0],
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+        },
+        signal: controller.signal,
+        redirect: 'manual',
+      });
+      const location = response.headers.get('location');
+      if (response.status >= 300 && response.status < 400 && location) {
+        if (hop >= MAX_REDIRECTS) throw new Error('Too many redirects');
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+      break;
+    }
 
     clearTimeout(timeoutId);
 
     result.statusCode = response.status;
-    result.finalUrl = response.url || targetUrl;
+    result.finalUrl = currentUrl;
 
     if (!response.ok) {
       result.errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
